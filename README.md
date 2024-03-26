@@ -1,7 +1,8 @@
 ## Snowflake
 
 ## part 3
-- Different VIEWs in SQL & Snowflake
-- Difference between those and when to use which one; Use cases
-- Use of COALESCE, NULLIF, IFNULL
-- Subquery in SQL
+- Multiple CASE WHEN STATEMENT for Grouping variable idea
+- Working with Dates: DATE_PART vs. EXTRACT
+- Five Number Summary
+- Outlier Detection
+- Data Cleaning in SQL
