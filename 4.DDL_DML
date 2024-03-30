@@ -1,0 +1,474 @@
+--DDL: Data Definition Language
+CREATE DATABASE TESTDB;
+
+--If you wish to Drop the Database then run the following command
+DROP DATABASE TESTDB;
+
+--To use Database
+USE DATABASE TESTDB;
+
+--If you create a TABLE then the Default Schema is "PUBLIC"
+--But, if you want to several tables under one schema and others under another schema,then create your own schema
+
+CREATE SCHEMA TESTDB.TEST1;
+
+USE SCHEMA TESTDB.TEST1;
+
+--TO Check if there is any existing table
+
+SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE  TABLE_SCHEMA = 'TEST1';
+
+--CTAS: Create Table as Select from other table/query output
+
+CREATE TABLE CUSTOMER AS 
+SELECT * FROM SNOWFLAKE_SAMPLE_DATA.TPCH_SF1.CUSTOMER
+WHERE C_MKTSEGMENT = 'AUTOMOBILE';
+
+--CHECK A SAMPLE OF DATA IN THAT TABLE
+SELECT * FROM TESTDB.TEST1.CUSTOMER LIMIT 7;
+
+
+--AS DATABASE AND SCHEMA'S ARE SPECIFIED USING "USE" STATEMENT, YOU CAN IGNORE THE "TESTDB.TEST1."" IN THE ABOVE COMMAND AND SIMPLY USE:
+
+SELECT * FROM CUSTOMER LIMIT 10;
+
+--TO Check if there is any existing table
+
+SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE  TABLE_SCHEMA = 'TEST1';
+
+
+--To Check the Statement/Query that has been used create the table
+SELECT GET_DDL('TABLE','CUSTOMER');
+
+DROP TABLE CUSTOMER;
+
+--CREATE A TABLE MANUALLY USING PRECISION (number of digits/characters allowed before decimal place) AND SCALE (number of digits allowed after decimal place)
+
+create or replace TABLE CUSTOMER (
+C_CUSTKEY NUMBER(38,0), 
+C_NAME VARCHAR(25), 
+C_ADDRESS VARCHAR(40),
+C_NATIONKEY NUMBER(38,0),
+C_PHONE VARCHAR(15),
+C_ACCTBAL NUMBER(12,2), 
+C_MKTSEGMENT VARCHAR(10), 
+C_COMMENT VARCHAR(117) );
+
+--The "Replace" statement ensures that if the same named table already exists, it will not give an error, rather replace the existing one
+
+SELECT * FROM CUSTOMER;
+
+
+--CREATE A CUSTOMER TABLE WITHOUT ANY PII (Personally Identifiable Information) like ADDRESS, NATIONKEY, ACCOUNT BALANCE, PHONE NUMBER, etc.
+
+
+CREATE OR REPLACE TABLE CUSTOMER_RESTRICTED_INFO (
+C_CUSTKEY NUMBER(16,0),
+C_NAME VARCHAR(20),
+C_EDUCATION VARCHAR(10),
+C_DEPARTMENT VARCHAR(20)
+);
+
+SELECT * FROM CUSTOMER_RESTRICTED_INFO;
+--DROP TABLE CUSTOMER_RESTRICTED_INFO;
+
+
+--DML: Data Manipulation Language [INSERT, UPDATE, DELETE]
+-- "INSERT" TO ADD NEW RECORDS
+
+INSERT INTO CUSTOMER_RESTRICTED_INFO (
+C_CUSTKEY,C_NAME,C_EDUCATION,C_DEPARTMENT
+)
+VALUES
+(101,'NAYEEM','Bsc', 'STAT'),
+(102,'MAHIN','Bsc','STAT'),
+(104,'BADHON','Bsc','CSE'),
+(105,'NAYEEM','Bsc',null)
+;
+SELECT * FROM CUSTOMER_RESTRICTED_INFO;
+
+--CHEK WHERE NULL EXIST 
+SELECT * FROM CUSTOMER_RESTRICTED_INFO
+WHERE C_DEPARTMENT IS NULL; --105
+
+-- USE "UPDATE" TO UPDATE AN EXISTING RECORDS
+UPDATE CUSTOMER_RESTRICTED_INFO
+SET C_DEPARTMENT = 'MAT'
+WHERE C_CUSTKEY= 105;
+
+SELECT * FROM CUSTOMER_RESTRICTED_INFO;
+
+-- "DELETE" CAN BE DIRECTLY USED WHERE IT DELETES ALL THE RECORDS IN THE TABLE BUT DROP REMOVE ALL RECORDS AND STRUCTURE
+--BUT IT SHOULD BE USED WITH A "WHERE" CLAUSE TO DELETE SPECIFIC RECORDS
+
+DELETE FROM CUSTOMER_RESTRICTED_INFO
+WHERE C_CUSTKEY=104;
+
+SELECT * FROM CUSTOMER_RESTRICTED_INFO;
+
+DELETE FROM CUSTOMER_RESTRICTED_INFO;
+
+-- CHECK FOR "DELETE" 
+SELECT * FROM CUSTOMER_RESTRICTED_INFO;
+
+-- "TRUNCATE" SHOULD BE USED TO DROP ALL THE RECORDS FROM A DATABASE TABLE
+--IT'S FASTER THAN THE "DELETE" STATEMENT
+
+TRUNCATE CUSTOMER_RESTRICTED_INFO;
+SELECT * FROM CUSTOMER_RESTRICTED_INFO;
+
+
+--What is difference between DROP &amp; TRUNCATE?
+--DROP REMOVES A TABLE/DATABASE/SCHEMA
+--TRUNCATE ONLY REMOVES ALL THE ROWS IN THE TABLE; BUT, THE TABLE STRUCTURE IS UN-AFFECTED
+--IT DROPS ALL THE RECORDS AT ONCE (CLEAN THE TABLE) BUT DOES NOT AFFECT THE SCHEMA/TABLE STRUCTURE
+--TO DROP A TABLE, SCHEMA, OR DATABASE WE USE THE "DROP" STATEMENT
+
+
+DROP TABLE CUSTOMER_RESTRICTED_INFO;
+SELECT * FROM CUSTOMER_RESTRICTED_INFO;
+--WILL GIVE YOU ERROR AS THERE IS NO TABLE IN THAT NAME
+
+--However, When we are working with multiple interconnected (with primary and foreign keys) tables, we need to use the "CASCADE" Statement
+
+DROP TABLE IF EXISTS CUSTOMER_RESTRICTED_INFO CASCADE;
+
+--CLEANING THE ENVIRONMENT
+DROP TABLE CUSTOMER;
+DROP DATABASE TESTDB;
+
+
+--DCL: Data Control Language
+--Transaction Starts with Begin
+BEGIN;
+--Commits all your changes in Database
+COMMIT;
+--Rollbacks your updates if commit is not issued
+ROLLBACK;
+
+
+-- ################ Bulk Insert Employee Data ###############---
+
+
+--DDL COMMANDS
+CREATE OR REPLACE DATABASE EMPLOYEE_DB;
+USE DATABASE EMPLOYEE_DB;
+CREATE SCHEMA EMP;
+USE SCHEMA EMPLOYEE_DB.EMP;
+
+
+
+--Create Table in Snowflake using Create Statement
+CREATE OR REPLACE TABLE EMPLOYEES (
+EMPLOYEE_ID number (10),
+FIRST_NAME varchar(25),
+LAST_NAME varchar(25),
+EMAIL varchar(25),
+PHONE_NUMBER varchar(15),
+HIRE_DATE DATE,
+JOB_ID varchar(15),
+SALARY number(12,2),
+COMMISSION_PCT real,
+MANAGER_ID number,
+DEPARTMENT_ID number
+);
+
+
+SELECT * FROM EMPLOYEES;
+--DDL COMMAND(drop column COMISSION_ID)
+alter table EMPLOYEES
+drop column COMMISSION_PCT;
+
+SELECT * FROM EMPLOYEES; 
+
+
+--Show Column/Variable Types(USE Exploring Dataset)
+SHOW COLUMNS IN TABLE EMPLOYEES;
+
+
+
+--SHOW TABLE NAMES AND TYPE OF THE TABLES IN A SCHEMA
+SELECT table_name, table_type
+FROM EMPLOYEE_DB.information_schema.tables
+WHERE table_schema = 'EMP';
+
+
+
+--CHECK IF THERE&#39;S ANY CONSTRAINT
+SELECT table_name, constraint_type, constraint_name
+FROM EMPLOYEE_DB.information_schema.table_constraints
+WHERE constraint_schema = 'EMP'; --Don't use ("") USE ('')
+ORDER BY table_name;
+
+
+--CREATE A FILE FORMAT TO LOAD THAT FORMAT DATA INTO SNOWFLAKE [To Bulk Insert CSV Files]
+create or replace file format my_csv_format
+type = csv
+field_delimiter = ',';
+skip_header = 1
+null_if = ('NULL', 'null';)
+empty_field_as_null = true
+--field_optionally_enclosed_by = '\042';
+--field_optionally_enclosed_by = '\027';
+--compression = gzip
+;
+
+
+--DROP FILE FORMAT my_csv_format;
+select * from employees;
+
+
+SELECT * FROM EMPLOYEES E WHERE E.HIRE_DATE IS NULL;
+--SELECT * FROM EMPLOYEES E WHERE E.HIRE_DATE = ""; 
+--To check if there is any empty value
+TRUNCATE employees;
+
+
+
+-- ########## Normalization in Database; Keys & Constraints ########### --
+
+USE DATABASE EMPLOYEE_DB;
+
+CREATE SCHEMA BOOKS_SCHEMA;
+USE SCHEMA BOOKS_SCHEMA;
+
+--Primary Key
+CREATE OR REPLACE TABLE USERS (
+id NUMBER(6) autoincrement start 100 increment 1,
+username VARCHAR(25) NOT NULL,
+enabled BOOLEAN DEFAULT TRUE, --BOOLEAN: TRUE/FALSE
+last_login timestamp NOT NULL DEFAULT current_timestamp,
+PRIMARY KEY (id)
+);
+
+--DROP TABLE USERS;
+SELECT * FROM USERS;
+
+
+--Unique Constraint
+CREATE TABLE BOOKS (
+id NUMBER(6) autoincrement start 1 increment 1,
+title VARCHAR(100) NOT NULL,
+author VARCHAR(100) NOT NULL,
+published_date date NOT NULL,
+isbn NUMBER(10),
+PRIMARY KEY (id),
+UNIQUE (isbn)
+);
+
+
+
+
+--Foreign Key
+CREATE OR REPLACE TABLE REVIEWS (
+id NUMBER(6) autoincrement start 1 increment 1,
+book_id NUMBER (6) NOT NULL,
+user_id NUMBER (6) NOT NULL,
+review_content VARCHAR(255),
+rating NUMBER (1,1),
+published_date timestamp DEFAULT CURRENT_TIMESTAMP,
+PRIMARY KEY (id),
+FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+
+
+--Composite Key as Primary Key
+CREATE TABLE users_books (
+user_id NUMBER(6) NOT NULL ,
+book_id NUMBER(6) NOT NULL,
+checkout_date timestamp,
+return_date timestamp,
+PRIMARY KEY (user_id, book_id),
+FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE CASCADE,
+FOREIGN KEY (book_id) REFERENCES books(id) ON UPDATE CASCADE
+);
+
+
+
+/*
+--Check Constraint
+CREATE TABLE people(
+age NUMBER(6) CHECK (age > 0)
+);
+*/
+
+
+
+
+--Alter a Table
+--Adding a column to a table
+ALTER TABLE                    -- this statement alters
+users                          -- the table users
+ADD COLUMN                     -- by adding a column
+email_ADD varchar(20) NOT NULL;    -- using these options
+
+--Renaming a column
+
+alter table users rename column USERNAME to NAMES;--USERNAME TO NAMES
+
+--Dropping a column
+
+ALTER TABLE users DROP COLUMN enabled;
+
+DROP TABLE REVIEWS;
+
+DROP TABLE USERS;
+
+SELECT * FROM USERS;
+
+
+
+
+CREATE OR REPLACE TABLE users (
+  id NUMBER(6) autoincrement start 101 increment 1 PRIMARY KEY,
+  username VARCHAR(25) NOT NULL,
+  enabled boolean DEFAULT TRUE
+);
+
+INSERT into users(username, enabled)
+VALUES('John Smith', false);
+
+SELECT * FROM users;
+
+INSERT into users(username, enabled)
+VALUES('John Smith II', false);
+INSERT into users(username, enabled)
+VALUES('John Smith III', false);
+INSERT into users(username, enabled)
+VALUES('John Smith III', true);
+INSERT into users(username, enabled)
+VALUES('Jack Smith III', true);
+INSERT into users(username, enabled)
+VALUES('Jack Smith II', true);
+INSERT into users(username, enabled)
+VALUES('Jack Smith I', true);
+
+SELECT * FROM USERS;
+
+
+UPDATE users SET enabled = true
+WHERE rtrim(username) LIKE '%II';--Change enabled to true for all users whose name contains II.
+
+
+
+/*
+rtrim is a function we can use to remove whitespace to the right of a data field. 
+Its use is necessary in the above SQL statement, otherwise we won't get a correct match with our LIKE clause. 
+'%' This is a wild card, telling the SQL LIKE clause to allow any number of characters.
+*/
+
+
+DELETE FROM users
+	WHERE username = 'John Smith';
+
+TRUNCATE USERS;
+
+
+/*
+In PostgreSQL, the CASCADE option is used with the DROP TABLE statement to drop/delete a table and its dependent objects. 
+To do so, specify the DROP TABLE command followed by the table name and then write the CASCADE to drop a table along with its dependent objects. 
+*/
+
+CREATE TABLE employees (
+    emp_no INT NOT NULL PRIMARY KEY
+);
+
+CREATE TABLE salaries (
+    Id INT NOT NULL,
+    emp_no INT NOT NULL,
+    FOREIGN KEY (emp_no)
+        REFERENCES employees (emp_no)
+        ON DELETE CASCADE
+);
+
+
+
+INSERT INTO employees VALUES (10001),
+(10002);
+
+SELECT * FROM EMPLOYEES;
+
+INSERT INTO salaries VALUES (1, 10001),
+(2, 10002);
+
+SELECT * FROM employees e;
+
+SELECT * FROM salaries s;
+
+DELETE FROM employees e where e.emp_no = 10001;
+
+SELECT * FROM employees e;
+SELECT * FROM salaries s;
+
+
+
+
+
+
+
+--  ########  Bulk Insert: Exception/Error Handling   ################  --
+CREATE SCHEMA BULK;
+USE SCHEMA BULK;
+
+--Table & File Format Along with Copy Command
+create or replace transient table customer_csv (
+	customer_pk number(38,0),
+	salutation varchar(10),
+	first_name varchar(20),
+	last_name varchar(30),
+	gender varchar(1),
+	marital_status varchar(1),
+	day_of_birth date,
+	birth_country varchar(60),
+	email_address varchar(50),
+	city_name varchar(60),
+	zip_code varchar(10),
+	country_name varchar(20),
+	gmt_timezone_offset number(10,2),
+	preferred_cust_flag boolean,
+	registration_time timestamp_ltz(9)
+);
+
+create or replace file format customer_csv_ff 
+    type = 'csv' 
+    compression = 'none' 
+    field_delimiter = ','
+    skip_header = 1 ;
+
+
+
+TRUNCATE customer_csv;
+
+
+-- field optionally enclosed
+create or replace file format customer_csv_ff2
+    type = 'csv' 
+    compression = 'none' 
+    field_delimiter = ','
+    field_optionally_enclosed_by = '\042'
+    skip_header = 1 ;
+
+TRUNCATE customer_csv;
+
+--File Format for PSV & TSV Delimited Data File
+
+create or replace file format customer_tsv_ff 
+    type = 'csv' 
+    compression = 'none' 
+    field_delimiter = '\t'
+    field_optionally_enclosed_by = '\042'
+    skip_header = 1 ;
+
+create or replace file format customer_tsv_ff 
+    type = 'csv' 
+    compression = 'none' 
+    field_delimiter = '|'
+    field_optionally_enclosed_by = '\042'
+    skip_header = 1 ;
+
+--Copy Into Table Parameters
+
+-- Option-1
+-- On Error => Skip The file
