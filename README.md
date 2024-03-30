@@ -6,3 +6,9 @@
 - Five Number Summary
 - Outlier Detection
 - Data Cleaning in SQL
+
+## part 4
+- Masterclass on SQL/Snowflake DDL, DML & DCL Commands/Syntax
+- Bulk Insert: Different Approach to Error Handling
+
+  
