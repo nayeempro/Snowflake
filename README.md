@@ -11,5 +11,8 @@
 - Masterclass on SQL/Snowflake DDL, DML & DCL Commands/Syntax
 - Bulk Insert: Different Approach to Error Handling
 
-  
- 
+## part 5
+- Cohort Analysis on customer
+-  Cohort Analysis on unique customer
+-   Cohort Analysis on reveneu
+-    Cohort Analysis on order level
