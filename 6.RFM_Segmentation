@@ -1,0 +1,217 @@
+--Creating the Database
+CREATE OR REPLACE DATABASE SALES;
+--drop database sales;
+USE DATABASE SALES;
+
+create schema rfm_sales;
+use schema rfm_sales;
+
+CREATE OR REPLACE TABLE SALES_SAMPLE_DATA (
+    ORDERNUMBER NUMBER (8, 0),
+    QUANTITYORDERED NUMBER (8,2),
+    PRICEEACH NUMBER (8,2),
+    ORDERLINENUMBER NUMBER (3, 0),
+    SALES NUMBER (8,2),
+    ORDERDATE VARCHAR (16),
+    STATUS VARCHAR (16),
+    QTR_ID NUMBER (1,0),
+    MONTH_ID NUMBER (2,0),
+    YEAR_ID NUMBER (4,0),
+    PRODUCTLINE VARCHAR (32),
+    MSRP NUMBER (8,0),
+    PRODUCTCODE VARCHAR (16),
+    CUSTOMERNAME VARCHAR (40),
+    PHONE VARCHAR (20),
+    ADDRESSLINE1 VARCHAR (64),
+    ADDRESSLINE2 VARCHAR (64),
+    CITY VARCHAR (16),
+    STATE VARCHAR (16),
+    POSTALCODE VARCHAR (16),
+    COUNTRY VARCHAR (24),
+    TERRITORY VARCHAR (24),
+    CONTACTLASTNAME VARCHAR (16),
+    CONTACTFIRSTNAME VARCHAR (16),
+    DEALSIZE VARCHAR (10) 
+);
+
+
+--Inspecting Data
+SELECT * FROM SALES_SAMPLE_DATA LIMIT 10;
+SELECT COUNT(*) FROM SALES_SAMPLE_DATA;--2,823
+
+
+--Checking unique values
+select distinct status from SALES_SAMPLE_DATA;
+select distinct year_id from SALES_SAMPLE_DATA;
+select distinct PRODUCTLINE from SALES_SAMPLE_DATA;
+select distinct COUNTRY from SALES_SAMPLE_DATA;
+select distinct DEALSIZE from SALES_SAMPLE_DATA;
+select distinct TERRITORY from SALES_SAMPLE_DATA;
+
+select distinct MONTH_ID from SALES_SAMPLE_DATA
+where year_id = 2004
+ORDER BY 1;
+
+
+---ANALYSIS
+----Let's start by grouping sales by productline
+SELECT ORDERNUMBER, ORDERLINENUMBER, PRODUCTLINE, SALES, *  
+FROM SALES_SAMPLE_DATA
+ORDER BY 1, 2
+LIMIT 100;
+
+--UNIQUE
+select PRODUCTLINE, ROUND(sum(sales),0) AS Revenue, COUNT(ORDERNUMBER) AS UNIQE_NO_OF_ORDERS
+from SALES_SAMPLE_DATA
+group by PRODUCTLINE
+order by 3 desc;
+
+
+
+--UNIQUE
+select PRODUCTLINE, ROUND(sum(sales),0) AS Revenue, COUNT(DISTINCT ORDERNUMBER) AS UNIQE_NO_OF_ORDERS
+from SALES_SAMPLE_DATA
+group by PRODUCTLINE
+order by 3 desc;
+
+
+
+
+select YEAR_ID, sum(sales) Revenue
+from SALES_SAMPLE_DATA
+group by YEAR_ID
+order by 2 desc;
+
+
+
+
+
+select  DEALSIZE,  sum(sales) Revenue
+from SALES_SAMPLE_DATA
+group by DEALSIZE
+order by 2 desc;
+
+
+----What was the best month for sales in a specific year? How much was earned that month? 
+select YEAR_ID, MONTH_ID, sum(sales) Revenue, count(ORDERNUMBER) Frequency
+from SALES_SAMPLE_DATA
+--where YEAR_ID = 2004 --change year to see the rest
+group by  MONTH_ID,YEAR_ID
+order by YEAR_ID,REVENUE desc; --(11-NOVEMBER IS GOOD)
+
+
+--November seems to be the month, what product do they sell in November, Classic I believe
+select  MONTH_ID, PRODUCTLINE, sum(sales) Revenue, count(ORDERNUMBER) AS NUMBER_OF_ORDER
+from SALES_SAMPLE_DATA
+where YEAR_ID = 2004 and MONTH_ID = 11 --change year to see the rest
+group by  MONTH_ID, PRODUCTLINE
+order by 3 desc;
+
+
+----Who is our best customer (this could be best answered with RFM)
+
+
+--DROP TABLE IF EXISTS rfm;
+SELECT TO_CHAR(TO_DATE(ORDERDATE, 'DD/MM/YYYY'), 'YY-MM-DD') AS converted_date from SALES_SAMPLE_DATA;
+
+
+SELECT TO_DATE(ORDERDATE, 'DD/MM/YYYY') AS converted_date from SALES_SAMPLE_DATA;
+
+
+
+SELECT TO_DATE(ORDERDATE, 'DD/MM/YYYY') AS converted__date, TO_CHAR(TO_DATE(ORDERDATE, 'DD/MM/YYYY'), 'YYYY-MM-DD') AS converted_date from SALES_SAMPLE_DATA; --(SEE THE DIFFERENCE)
+
+
+
+SELECT ORDERDATE FROM SALES_SAMPLE_DATA LIMIT 5;
+SELECT TO_DATE(ORDERDATE, 'DD/MM/YYYY')  from SALES_SAMPLE_DATA;
+
+
+
+SELECT MAX(TO_DATE(ORDERDATE, 'DD/MM/YYYY')) AS LATESTDATE from SALES_SAMPLE_DATA;--2005-05-10
+
+SELECT MIN(TO_DATE(ORDERDATE, 'DD/MM/YYYY')) AS EARLIESTDATE from SALES_SAMPLE_DATA;--2003-01-29
+
+
+
+SELECT 
+datediff('DAY', MIN(TO_DATE(ORDERDATE, 'DD/MM/YYYY')), MAX(TO_DATE(ORDERDATE, 'DD/MM/YYYY'))) BUSINESS_DAY FROM SALES_SAMPLE_DATA; 
+
+SELECT
+COUNT(TO_DATE(ORDERDATE, 'DD/MM/YYYY'))
+FROM SALES_SAMPLE_DATA; --IS NUMBER 
+
+
+--RFM SEGMENTATION: SEGMENTING YOUR CUSTOMER BASEN ON RECENCY (R), FREQUENCY (F), AND MONETARY (M) SCORES
+
+
+
+create view rfm_segment as(
+WITH CTE1 AS
+(select 
+		CUSTOMERNAME, 
+		ROUND(sum(sales),0) AS MonetaryValue,
+		ROUND(avg(sales),0) AS AvgMonetaryValue,
+		count(distinct ORDERNUMBER) AS Frequency,
+		MAX(TO_DATE(ORDERDATE, 'DD/MM/YYYY')) AS last_order_date, --It's Customer Maximum Date
+		(select MAX(TO_DATE(ORDERDATE, 'DD/MM/YYYY')) from SALES_SAMPLE_DATA) AS max_order_date, --wHole customer max date
+		DATEDIFF('DAY', max(TO_DATE(ORDERDATE, 'DD/MM/YYYY')), (select max(TO_DATE(ORDERDATE, 'DD/MM/YYYY')) from SALES_SAMPLE_DATA)) AS Recency
+	from SALES_SAMPLE_DATA
+	group by CUSTOMERNAME),
+
+rfm_calc as 
+(select C.*,
+		NTILE(4) OVER (order by Recency DESC) rfm_recency,
+		NTILE(4) OVER (order by Frequency ASC) rfm_frequency,
+		NTILE(4) OVER (order by MonetaryValue ASC) rfm_monetary
+	from CTE1 C)
+
+select 
+	R.*, (rfm_recency+ rfm_frequency+ rfm_monetary) as rfm_total_score,
+	concat(cast(rfm_recency as varchar),cast(rfm_frequency as varchar),cast(rfm_monetary  as varchar)) as rfm_score_category
+from rfm_calc R);
+
+
+select * from rfm_segment;
+
+select distinct rfm_score_category from rfm_segment
+order by 1;
+
+
+select * from rfm_segment
+where rfm_score_category = '444';
+
+
+
+
+select CUSTOMERNAME , rfm_recency, rfm_frequency, rfm_monetary,
+	case 
+		when rfm_score_category in (111, 112, 121, 122, 123, 132, 211, 212, 114, 141) then 'lost_customers'  --lost customers
+		when rfm_score_category in (133, 134, 143, 244, 334, 343, 344, 144) then 'slipping away, cannot lose' -- (Big spenders who haven�t purchased lately) slipping away
+		when rfm_score_category in (311, 411, 331) then 'new customers'
+		when rfm_score_category in (222, 231, 221,  223, 233, 322) then 'potential churners'
+		when rfm_score_category in (323, 333,321, 341, 422, 332, 432) then 'active' --(Customers who buy often & recently, but at low price points)
+		when rfm_score_category in (433, 434, 443, 444) then 'loyal'
+        else 'Other'
+	end as Customer_Segment
+from rfm_segment;
+
+
+---EXTRAs----
+--What city has the highest number of sales in a specific country
+select city, sum (sales) Revenue
+from SALES_SAMPLE_DATA
+where country = 'UK'
+group by city
+order by 2 desc;
+
+
+
+---What is the best product in United States?
+select country, YEAR_ID, PRODUCTLINE, sum(sales) Revenue
+from SALES_SAMPLE_DATA
+where country = 'USA'
+group by  country, YEAR_ID, PRODUCTLINE
+order by 4 desc
+;
+
