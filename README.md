@@ -16,3 +16,8 @@
 -  Cohort Analysis on unique customer
 -   Cohort Analysis on reveneu
 -    Cohort Analysis on order level
+
+## part 6
+- RFM Segmentation (: SEGMENTING YOUR CUSTOMER BASEN ON RECENCY (R), FREQUENCY (F), AND MONETARY (M) SCORES)
+- Best Customer my e_commerce
+- best country and city 
