@@ -21,3 +21,9 @@
 - RFM Segmentation (: SEGMENTING YOUR CUSTOMER BASEN ON RECENCY (R), FREQUENCY (F), AND MONETARY (M) SCORES)
 - Best Customer my e_commerce
 - best country and city 
+
+## part 7
+- Store_procedure
+- user define function
+- finding new customer
+- (use part_6 data set) 
