@@ -26,4 +26,8 @@
 - Store_procedure
 - user define function
 - finding new customer
-- (use part_6 data set) 
+- (use part_6 data set)
+
+  ## part 8
+- Finding Duplicate Records
+- Removing Duplicate Records
