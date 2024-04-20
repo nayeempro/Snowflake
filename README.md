@@ -1,5 +1,10 @@
 ## Snowflake
 
+## part 1
+- KPI
+- JOIN
+- Aggregate Function
+
 ## part 3
 - Multiple CASE WHEN STATEMENT for Grouping variable idea
 - Working with Dates: DATE_PART vs. EXTRACT
