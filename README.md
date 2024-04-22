@@ -5,6 +5,12 @@
 - JOIN
 - Aggregate Function
 
+ ## part 2
+- DQL
+- Case_When
+- CTE(Common Table Expression)
+- Top Selling Product
+
 ## part 3
 - Multiple CASE WHEN STATEMENT for Grouping variable idea
 - Working with Dates: DATE_PART vs. EXTRACT
